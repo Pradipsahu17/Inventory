@@ -1,0 +1,20 @@
+-- select * from inventory.item_groups_view
+
+CREATE OR REPLACE VIEW inventory.item_groups_view
+ AS
+  SELECT i.group_id,
+    i.group_name,
+    i.is_parent,
+	i.parent_group_id,
+    CASE WHEN i.parent_group_id IS NOT NULL THEN
+		(SELECT g.group_name from inventory.item_groups g where g.group_id = i.parent_group_id)
+	ELSE '' END AS parent_group_name,
+    i.gl_account_id,
+	g.account_name,
+    i.audit_user_id,
+	u.user_name
+  FROM inventory.item_groups i
+  LEFT JOIN core.gl_accounts g 
+  	ON g.gl_account_id = i.gl_account_id
+  INNER JOIN office.users u 
+  	ON u.user_id = i.audit_user_id;

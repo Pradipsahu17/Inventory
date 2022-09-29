@@ -1,0 +1,16 @@
+CREATE OR REPLACE VIEW inventory.store_view
+ AS 
+  SELECT s.store_id,
+    s.store_code,
+    s.store_name,
+    s.store_location,
+    s.office_id,
+	o.office_name,
+    s.audit_user_id,
+	u.user_name,
+	s.audit_ts
+  FROM inventory.stores s
+  INNER JOIN office.offices o 
+  	ON s.office_id = o.office_id
+  INNER JOIN office.users u
+  	ON s.audit_user_id = u.user_id;

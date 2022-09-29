@@ -1,0 +1,24 @@
+-- select  from inventory.delete_item(10)
+
+-- DROP FUNCTION IF EXISTS inventory.delete_item(bigint);
+
+CREATE OR REPLACE FUNCTION inventory.delete_item(
+	purchase_id_ bigint)
+    RETURNS boolean
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE _purchase_id bigint;
+	BEGIN
+		-- UPDATE ON inventory.items TABLE
+		DELETE FROM inventory.items WHERE purchase_id = $1;
+				
+		-- UPDATE ON inventory.purchase_items TABLE
+		DELETE FROM inventory.purchase_items WHERE purchase_id = $1;
+		
+		RETURN true;
+	END
+$BODY$;
+
+

@@ -1,0 +1,31 @@
+-- SELECT * FROM inventory.get_sales_report('2021-10-10','2022-10-10')
+-- DROP FUNCTION inventory.get_sales_report(date,date)
+
+CREATE OR REPLACE FUNCTION inventory.get_sales_report(
+	from_date_ date,
+	to_date_ date)
+    RETURNS TABLE(sn bigint, sale_id bigint, tran_date character varying, item_name character varying, quantity text, total_amount money, user_name character varying) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
+	BEGIN
+		RETURN QUERY(
+			SELECT ROW_NUMBER() OVER(),
+				s.item_sale_id,
+				core.date_bs_from_ad(s.tran_date) AS tran_date,
+				i.item_name,
+				sd.quantity ||' '|| us.unit_measurement,
+				sd.quantity * sd.amount,
+				u.user_name
+			FROM inventory.item_sales s 
+			INNER JOIN inventory.item_sale_details sd ON sd.item_sale_id = s.item_sale_id
+			INNER JOIN inventory.items_view i ON i.item_id = sd.item_id
+			INNER JOIN office.users u ON u.user_id = s.audit_user_id
+			INNER JOIN inventory.unit_setup us ON us.unit_id = i.unit_id
+			WHERE s.tran_date BETWEEN $1 AND $2
+		);
+	END
+$BODY$;

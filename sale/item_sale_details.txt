@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS inventory.item_sale_details(
+	item_sale_detail bigserial PRIMARY KEY UNIQUE NOT NULL,
+	item_sale_id bigint REFERENCES inventory.item_sales(item_sale_id) NOT NULL,
+	item_id integer NOT NULL,
+    quantity integer NOT NULL,
+    tax_id integer NOT NULL,
+    total_amount money NOT NULL,
+    is_warranty boolean DEFAULT false,
+    warranty_duration integer,
+    statement_reference character varying(100),
+    audit_user_id integer NOT NULL,
+    audit_ts timestamp with time zone DEFAULT now()
+);

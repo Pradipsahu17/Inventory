@@ -1,0 +1,26 @@
+-- select * from inventory.item_sales
+
+-- select * from inventory.reject_sold_item(10,1)
+
+CREATE OR REPLACE FUNCTION inventory.reject_sold_item(
+	item_sale_id_ bigint,
+	user_id_ integer)
+	RETURNS boolean
+	LANGUAGE 'plpgsql'
+	COST 100
+	VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE count_ integer :=(SELECT COALESCE(COUNT(*),0) FROM inventory.item_sales WHERE item_sale_id = $1);
+	BEGIN
+		IF count_ = 0 THEN
+			RETURN false;
+		ELSE
+			UPDATE inventory.item_sales 
+			SET verification_status_id = -3,
+			verified_by_user_id = $2
+			WHERE item_sale_id = $1;
+
+			RETURN true;
+		END IF;
+	END
+$BODY$;

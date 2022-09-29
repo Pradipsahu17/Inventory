@@ -1,0 +1,23 @@
+-- DROP VIEW inventory.sales_view;
+
+-- select * from inventory.item_sales_view
+
+CREATE OR REPLACE VIEW inventory.item_sales_view
+ AS
+  SELECT s.item_sale_id,
+  	s.office_id,
+	o.nick_name,
+    s.tran_date,
+    core.date_bs_from_ad(s.tran_date) AS tran_date_bs,
+    s.total_amount,
+	s.statement_reference,
+    s.verification_status_id,
+    v.verification_status_name,
+    s.verified_by_user_id,
+    us.user_name AS verified_by,
+    u.user_name AS audit_user_name
+   FROM inventory.item_sales s
+	 JOIN office.offices o ON s.office_id = o.office_id
+     JOIN office.users u ON s.audit_user_id = u.user_id
+     JOIN office.users us ON s.verified_by_user_id = us.user_id
+     JOIN core.verification_statuses v ON s.verification_status_id = v.verification_status_id;

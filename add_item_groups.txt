@@ -1,0 +1,34 @@
+-- SELECT * FROM inventory.add_item_groups('Washing Machine', false, 1, 45, 1)
+
+-- DROP FUNCTION inventory.add_item_groups(character varying,boolean,integer,integer,integer)
+
+CREATE OR REPLACE FUNCTION inventory.add_item_groups(
+	group_name_ character varying,
+	is_parent_ boolean,
+	parent_group_id_ integer,
+	gl_account_id_ integer,
+	user_id_ integer)
+	RETURNS integer
+	LANGUAGE 'plpgsql'
+	COST 100
+	VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE _group_id integer;
+	BEGIN
+		IF $2 = true THEN
+			INSERT INTO inventory.item_groups(group_name, is_parent, gl_account_id, audit_user_id)
+			SELECT $1,$2,$4,$5;
+			
+			SELECT CURRVAL('inventory.item_groups_group_id_seq') INTO _group_id;
+			
+			RETURN _group_id;
+		ELSE
+			INSERT INTO inventory.item_groups(group_name, is_parent, parent_group_id, gl_account_id, audit_user_id)
+			SELECT $1,$2,$3,$4,$5;
+			
+			SELECT CURRVAL('inventory.item_groups_group_id_seq') INTO _group_id;
+			
+			RETURN _group_id;
+		END IF;
+	END
+$BODY$;

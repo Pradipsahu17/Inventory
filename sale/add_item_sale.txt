@@ -1,0 +1,29 @@
+-- DROP FUNCTION inventory.insert_into_item_sales(integer,character varying,date,integer,money,character varying,json)
+
+CREATE OR REPLACE FUNCTION inventory.insert_into_item_sales(
+	office_id_ integer,
+	book_name_ character varying,
+	tran_date_ date,
+	user_id_ integer,
+	total_amount_ money,
+	statement_reference_ character varying,
+	item_details_ json)
+    RETURNS bigint
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE _item_sale_id bigint;
+	BEGIN
+		INSERT INTO inventory.item_sales(office_id, book_name, tran_date, total_amount, statement_reference, verification_status_id, verified_by_user_id, audit_user_id) 
+		SELECT $1, $2, $3, $5, $6, 1, $4, $4; 
+
+		SELECT CURRVAL('inventory.item_sales_item_sale_id_seq') INTO _item_sale_id;
+
+		INSERT INTO inventory.item_sale_details(item_sale_id, item_id, quantity, amount, audit_user_id) 
+		SELECT _item_sale_id, i.item_id, i.quantity, i.amount, $4
+		FROM json_populate_recordset(null::inventory.item_type, $7) i;
+		
+		RETURN _item_sale_id;
+	END
+$BODY$;

@@ -1,0 +1,34 @@
+-- select * from inventory.get_remaining_quantity(0)
+
+-- DROP FUNCTION inventory.get_remaining_quantity(integer)
+
+CREATE OR REPLACE FUNCTION inventory.get_remaining_quantity(
+	item_id_ integer)
+	RETURNS TABLE (item_id bigint, item_name character varying, quantity integer, unit_name character varying, store_name character varying)
+	LANGUAGE 'plpgsql'
+	COST 100
+	VOLATILE PARALLEL UNSAFE
+AS $BODY$
+	BEGIN
+		IF $1 = 0 THEN
+			RETURN QUERY(
+				SELECT i.item_id, 
+					i.item_name, 
+					i.quantity, 
+					i.unit_name, 
+					i.store_name 
+				FROM inventory.items_view i
+			);
+		ELSE
+			RETURN QUERY(
+				SELECT i.item_id, 
+					i.item_name, 
+					i.quantity, 
+					i.unit_name, 
+					i.store_name 
+				FROM inventory.items_view i
+				WHERE i.item_id = $1
+			);
+		END IF;
+	END
+$BODY$;

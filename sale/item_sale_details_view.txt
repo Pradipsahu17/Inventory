@@ -1,0 +1,40 @@
+-- DROP VIEW inventory.sales_view;
+
+-- select * from inventory.item_sale_details_view
+
+CREATE OR REPLACE VIEW inventory.item_sale_details_view
+ AS
+ SELECT s.item_sale_detail_id,
+ 	s.item_sale_id,
+	s.item_id,
+    p.item_name,
+    p.quantity,
+    p.cost_price,
+    p.unit_id,
+    us.unit_name,
+    p.group_id,
+    g.group_name,
+    p.store_id,
+    ss.store_name,
+    p.description,
+    p.mfd,
+    p.exp_date,
+    p.tax_id,
+    t.tax_name,
+    p.is_balance_bd,
+    p.supplier_id,
+    su.supplier_name,
+    p.is_warranty,
+    p.warranty_duration,
+    p.audit_user_id,
+    p.audit_ts,
+    u.user_name AS audit_user
+   FROM inventory.item_sale_details s
+     JOIN inventory.items i ON s.item_id = i.item_id
+     JOIN inventory.purchase_item_details p ON p.purchase_detail_id = i.purchase_detail_id
+     JOIN inventory.unit_setup us ON p.unit_id = us.unit_id
+     JOIN inventory.item_groups g ON p.group_id = g.group_id
+     JOIN inventory.stores ss ON ss.store_id = p.store_id
+     JOIN inventory.tax_type t ON t.tax_id = p.tax_id
+     JOIN inventory.suppliers su ON su.supplier_id = p.supplier_id
+     JOIN office.users u ON s.audit_user_id = u.user_id;

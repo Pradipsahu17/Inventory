@@ -1,0 +1,44 @@
+-- select * from inventory.update_item('Sony', 50, '50000', '60000', 5, 'test', 2, 1, null, null, true, 365, false, true, 1,4,2)
+
+-- DROP FUNCTION IF EXISTS inventory.update_item(character varying, integer, money, money, integer, character varying, integer, integer, date, date, boolean, integer, boolean, boolean, integer, bigint, integer);
+
+CREATE OR REPLACE FUNCTION inventory.update_item(
+	item_name_ character varying,
+	quantity_ integer,
+	cost_price_ money,
+	mrp_ money,
+	unit_id_ integer,
+	description_ character varying,
+	group_id_ integer,
+	store_id_ integer,
+	mfd_ date,
+	exp_date_ date,
+	is_warranty_ boolean,
+	warranty_duration integer,
+	is_balance_bd boolean,
+	is_active_ boolean,
+	user_id_ integer,
+	purchase_id_ bigint,
+	tax_id_ integer)
+    RETURNS boolean
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE _purchase_id bigint;
+	BEGIN
+		-- UPDATE ON inventory.purchase_items TABLE
+		UPDATE inventory.purchase_items SET item_name=$1, quantity = $2, cost_price = $3, unit_id = $5, description = $6, group_id = $7, 
+		store_id = $8, mfd = $9, exp_date = $10, is_warranty = $11, warranty_duration = $12, is_balance_bd = $13, audit_user_id = $15, tax_id = $17
+		WHERE purchase_id = $16;
+		
+		
+		-- UPDATE ON inventory.items TABLE
+		UPDATE inventory.items  SET quantity = $2, cost_price = $3, mrp = $4, is_active = $14, audit_user_id = $15
+		WHERE purchase_id = $16;
+		
+		RETURN true;
+	END
+$BODY$;
+
+

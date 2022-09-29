@@ -1,0 +1,39 @@
+CREATE OR REPLACE VIEW inventory.purchase_item_details_view
+ AS
+  SELECT p.purchase_detail_id,
+    p.purchase_id,
+    p.item_name,
+    p.quantity,
+    p.cost_price,
+    p.unit_id,
+	us.unit_name,
+    p.group_id,
+	g.group_name,
+    p.store_id,
+	s.store_name,
+    p.description,
+    p.mfd,
+    p.exp_date,
+    p.tax_id,
+	t.tax_name,
+    p.is_balance_bd,
+    p.supplier_id,
+	su.supplier_name,
+    p.is_warranty,
+    p.warranty_duration,
+    p.audit_user_id,
+    p.audit_ts,
+	u.user_name AS audit_user
+  FROM inventory.purchase_item_details p
+  INNER JOIN office.users u
+  	ON p.audit_user_id = u.user_id
+  INNER JOIN inventory.unit_setup us
+  	ON us.unit_id = p.unit_id
+  INNER JOIN inventory.item_groups g
+  	ON g.group_id = p.group_id
+  INNER JOIN inventory.stores s
+  	ON s.store_id = p.store_id
+  INNER JOIN inventory.tax_type t
+  	ON t.tax_id = p.tax_id
+  INNER JOIN inventory.suppliers su
+  	ON su.supplier_id = p.supplier_id;

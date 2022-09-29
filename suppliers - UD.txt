@@ -1,0 +1,48 @@
+CREATE OR REPLACE FUNCTION inventory.insert_into_suppliers(
+	supplier_name_ integer,
+	supplier_address_ character varying,
+	user_id integer)
+	RETURNS boolean
+	LANGUAGE 'plpgsql'
+	COST 100
+	VOLATILE PARALLEL UNSAFE
+AS $BODY$
+	BEGIN
+		INSERT INTO inventory.suppliers(supplier_name, supplier_address, audit_user_id)
+		SELECT $1, $2, $3;
+		
+		RETURN true;
+	END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION inventory.update_suppliers(
+	supplier_id_ integer,
+	supplier_name_ integer,
+	supplier_address_ character varying,
+	user_id integer)
+	RETURNS boolean
+	LANGUAGE 'plpgsql'
+	COST 100
+	VOLATILE PARALLEL UNSAFE
+AS $BODY$
+	BEGIN
+		UPDATE inventory.suppliers SET supplier_name = $2, supplier_address = $3, audit_user_id = $4
+		WHERE supplier_id = $1;
+		
+		RETURN true;
+	END
+$BODY$;
+
+CREATE OR REPLACE FUNCTION inventory.delete_suppliers(
+	supplier_id_ integer)
+	RETURNS boolean
+	LANGUAGE 'plpgsql'
+	COST 100
+	VOLATILE PARALLEL UNSAFE
+AS $BODY$
+	BEGIN
+		DELETE FROM inventory.suppliers WHERE supplier_id = $1;
+		
+		RETURN true;
+	END
+$BODY$;

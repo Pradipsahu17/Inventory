@@ -1,0 +1,16 @@
+CREATE OR REPLACE VIEW inventory.tax_type_view
+ AS
+  SELECT t.tax_id,
+    t.tax_name,
+    t.code,
+    t.percentage,
+    t.gl_account_id,
+	g.account_name,
+    t.is_active,
+    t.audit_user_id,
+	u.user_name
+  FROM inventory.tax_type t
+  LEFT JOIN core.gl_accounts g 
+  	ON t.gl_account_id = g.gl_account_id
+  INNER JOIN office.users u 
+  	ON t.audit_user_id = u.user_id;

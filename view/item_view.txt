@@ -1,0 +1,40 @@
+-- select * from inventory.items_view
+
+CREATE OR REPLACE VIEW inventory.items_view
+ AS
+ SELECT i.item_id,
+    p.purchase_id,
+    p.tran_date,
+    pd.item_name,
+    i.cost_price,
+    i.mrp,
+    i.quantity,
+	inventory.get_remaining_quantity(i.item_id) AS remaining_quantity,
+    pd.unit_id,
+    us.unit_name,
+    pd.group_id,
+    g.group_name,
+	pd.supplier_id,
+	su.supplier_name,
+    pd.store_id,
+    s.store_name,
+    s.store_location,
+	
+    pd.description,
+    pd.mfd,
+    pd.exp_date,
+    pd.tax_id,
+    t.tax_name,
+    t.percentage AS tax,
+    pd.is_balance_bd,
+    i.is_active,
+    i.audit_user_id,
+    u.user_name AS audit_user,
+    i.audit_ts
+   FROM inventory.items i
+     JOIN inventory.purchase_item_details pd ON pd.purchase_detail_id = i.purchase_detail_id
+     JOIN inventory.purchase_items p ON p.purchase_id = pd.purchase_id
+     JOIN inventory.unit_setup us ON pd.unit_id = us.unit_id
+     JOIN inventory.item_groups g ON pd.group_id = g.group_id
+     JOIN inventory.store_view s ON pd.store_id = s.store_id
+     JOIN inventory.tax_type t ON pd

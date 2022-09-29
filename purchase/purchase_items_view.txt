@@ -1,0 +1,24 @@
+CREATE OR REPLACE VIEW inventory.purchase_items_view
+ AS
+  SELECT i.purchase_id,
+    i.office_id,
+	o.nick_name,
+    i.tran_date,
+    i.book_name,
+    i.total_amount,
+    i.statement_reference,
+    i.verification_status_id,
+	v.verification_status_name,
+    i.verified_by_user_id,
+	us.user_name AS verified_by,
+    i.audit_user_id,
+	u.user_name AS audit_user
+  FROM inventory.purchase_items i
+  INNER JOIN office.offices o
+  	ON i.office_id = o.office_id
+  INNER JOIN office.users u
+  	ON i.audit_user_id = u.user_id
+  INNER JOIN office.users us
+  	ON i.verified_by_user_id = us.user_id
+  INNER JOIN core.verification_statuses v
+  	ON i.verification_status_id = v.verification_status_id;

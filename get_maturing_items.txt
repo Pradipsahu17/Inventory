@@ -1,0 +1,28 @@
+-- select * from inventory.get_maturing_items()
+
+-- DROP FUNCTION IF EXISTS inventory.get_maturing_items();
+
+CREATE OR REPLACE FUNCTION inventory.get_maturing_items(
+	)
+    RETURNS TABLE(item_id bigint, item_name character varying, quantity integer, unit_name character varying, mfd date, exp_date date, remaining_days integer) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
+DECLARE _date date := (SELECT core.get_date());
+	BEGIN
+		RETURN QUERY(
+			SELECT i.item_id, 
+				i.item_name, 
+				i.quantity, 
+				i.unit_name, 
+				i.mfd, 
+				i.exp_date,
+				(i.exp_date - _date)
+			FROM inventory.items_view i
+			WHERE i.exp_date BETWEEN _date AND _date + 30
+		);
+	END
+$BODY$;

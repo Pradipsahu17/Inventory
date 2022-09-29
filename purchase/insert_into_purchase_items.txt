@@ -1,0 +1,47 @@
+-- DROP FUNCTION IF EXISTS inventory.insert_into_purchase_items(integer, date, character varying, integer, money, character varying, json);
+
+CREATE OR REPLACE FUNCTION inventory.insert_into_purchase_items(
+	office_id_ integer,
+	tran_date_ date,
+	book_name_ character varying,
+	user_id_ integer,
+	total_amount_ money,
+	statement_reference_ character varying,
+	item_details_ json)
+    RETURNS bigint
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE _purchase_id bigint;
+DECLARE _purchase_detail_id bigint;
+DECLARE i integer := 1;
+	BEGIN
+		CREATE TEMP TABLE _t(sn serial, item_name character varying, quantity integer, cost_price money, mrp money, unit_id integer, group_id integer, store_id integer, supplier_id integer, description character varying, mfd date, exp_date date, tax_id integer, is_balance_bd boolean, is_active boolean, is_warranty boolean,warranty_duartion integer) ON COMMIT DROP;
+		INSERT INTO _t(item_name, quantity, cost_price, mrp, unit_id, group_id, store_id, supplier_id, description, mfd, exp_date, tax_id, is_balance_bd, is_active, is_warranty, warranty_duartion)
+		SELECT i.item_name, i.quantity, i.cost_price, i.mrp, i.unit_id, i.group_id, i.store_id, i.supplier_id, i.description, i.mfd, i.exp_date, i.tax_id, i.is_balance_bd, i.is_active, i.is_warranty,i.warranty_duration
+		FROM json_populate_recordset(null::inventory.item_purchase_type, $7) i;
+		
+		INSERT INTO inventory.purchase_items(office_id, tran_date, book_name, total_amount, statement_reference, verification_status_id, verified_by_user_id, audit_user_id) 
+		SELECT $1, $2, $3, $5, $6, 1, $4, $4; 
+
+		SELECT CURRVAL('inventory.purchase_items_purchase_id_seq') INTO _purchase_id;
+		
+		LOOP
+			INSERT INTO inventory.purchase_item_details(purchase_id , item_name, quantity, cost_price, unit_id, group_id, store_id, supplier_id, description, mfd, exp_date, tax_id, is_balance_bd, is_active, is_warranty, warranty_duration, audit_user_id) 
+			SELECT _purchase_id, _t.item_name, _t.quantity, _t.cost_price, _t.unit_id, _t.group_id, _t.store_id, _t.supplier_id, _t.description, _t.mfd, _t.exp_date, _t.tax_id, _t.is_balance_bd, _t.is_active, _t.is_warranty, _t.warranty_duration, $4
+			FROM _t WHERE _t.sn = i;
+
+			SELECT CURRVAL('inventory.purchase_item_details_purchase_item_detail_seq') INTO _purchase_detail_id;
+
+			INSERT INTO inventory.items(purchase_detail_id, quantity, cost_price, mrp, audit_user_id)
+			SELECT _purchase_detail_id, _t.quantity, _t.cost_price, _t.mrp, $4
+			FROM _t WHERE _t.sn = i;
+			
+			i = i + 1;
+			EXIT WHEN i > (SELECT COUNT(*) FROM _t);
+		END LOOP;
+		
+		RETURN _purchase_id;
+	END
+$BODY$;

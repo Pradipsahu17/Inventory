@@ -1,0 +1,191 @@
+CREATE OR REPLACE VIEW transactions.transactions_view
+ AS
+ SELECT t.tran_id,
+    t.office_id,
+    t.tran_date::date AS tran_date,
+    t.value_date::date AS value_date,
+    t.book_name,
+    td.gl_account_id,
+    td.debit,
+    td.credit,
+    td.statement_reference,
+    t.teller_id
+   FROM transactions.transactions t
+     JOIN transactions.transaction_details td ON t.tran_id = td.tran_id
+  WHERE t.verification_status_id > 0
+UNION ALL
+ SELECT 0 AS tran_id,
+    a.office_id,
+    i.value_date AS tran_date,
+    i.value_date,
+    'Interest Transit'::character varying AS book_name,
+    a.interest_expenses_gl_account_id AS gl_account_id,
+    sum(COALESCE(i.interest, 0::numeric))::money AS debit,
+    0::money AS credit,
+    'Interest payable'::character varying AS statement_reference,
+    i.audit_user_id AS teller_id
+   FROM deposit.interest_transit i
+     JOIN ( SELECT ac.office_id,
+            ac.account_number_id,
+            p.interest_expenses_gl_account_id
+           FROM deposit.account_holders ac
+             JOIN core.deposit_products p ON ac.deposit_product_id = p.deposit_product_id) a ON i.account_number_id = a.account_number_id
+  GROUP BY a.office_id, i.value_date, a.interest_expenses_gl_account_id, i.audit_user_id
+UNION ALL
+ SELECT 0 AS tran_id,
+    a.office_id,
+    i.value_date AS tran_date,
+    i.value_date,
+    'Interest Transit'::character varying AS book_name,
+    a.interest_payable_gl_account_id AS gl_account_id,
+    0::money AS debit,
+    sum(COALESCE(i.interest, 0::numeric))::money AS credit,
+    'Interest payable'::character varying AS statement_reference,
+    i.audit_user_id AS teller_id
+   FROM deposit.interest_transit i
+     JOIN ( SELECT ac.office_id,
+            ac.account_number_id,
+            p.interest_payable_gl_account_id
+           FROM deposit.account_holders ac
+             JOIN core.deposit_products p ON ac.deposit_product_id = p.deposit_product_id) a ON i.account_number_id = a.account_number_id
+  GROUP BY a.office_id, i.value_date, a.interest_payable_gl_account_id, i.audit_user_id
+UNION ALL
+ SELECT 0 AS tran_id,
+    a.office_id,
+    i.value_date AS tran_date,
+    i.value_date,
+    'Interest Transfer'::character varying AS book_name,
+    a.interest_payable_gl_account_id AS gl_account_id,
+    sum(COALESCE(i.interest, 0::numeric))::money AS debit,
+    0::money AS credit,
+    'Interest Transferred '::text AS statement_reference,
+    i.audit_user_id AS teller_id
+   FROM deposit.interest_transfer i
+     JOIN ( SELECT ac.office_id,
+            ac.account_number_id,
+            p.interest_payable_gl_account_id
+           FROM deposit.account_holders ac
+             JOIN core.deposit_products p ON ac.deposit_product_id = p.deposit_product_id) a ON i.nominee_account_number_id = a.account_number_id
+  GROUP BY a.office_id, i.value_date, a.interest_payable_gl_account_id, i.audit_user_id
+UNION ALL
+ SELECT 0 AS tran_id,
+    a.office_id,
+    i.value_date AS tran_date,
+    i.value_date,
+    'Interest Transfer'::character varying AS book_name,
+    a.gl_account_id,
+    '$0.00'::money AS debit,
+    sum(COALESCE(i.interest, 0::numeric))::money AS credit,
+    'Interest Transferred to '::text AS statement_reference,
+    i.audit_user_id AS teller_id
+   FROM deposit.interest_transfer i
+     JOIN ( SELECT ac.office_id,
+            ac.account_number_id,
+            p.gl_account_id
+           FROM deposit.account_holders ac
+             JOIN core.deposit_products p ON ac.deposit_product_id = p.deposit_product_id) a ON i.nominee_account_number_id = a.account_number_id
+  GROUP BY a.office_id, i.value_date, a.gl_account_id, i.audit_user_id
+UNION ALL
+ SELECT 0 AS tran_id,
+    a.office_id,
+    i.value_date AS tran_date,
+    i.value_date,
+    'Interest Transfer'::character varying AS book_name,
+    ( SELECT gl_accounts.gl_account_id
+           FROM core.gl_accounts
+          WHERE lower(gl_accounts.account_name::text) = 'tax office'::text) AS gl_account_id,
+    0::money AS debit,
+    sum(COALESCE(i.tax, 0::numeric))::money AS credit,
+    'Interest tax payable '::character varying AS statement_reference,
+    i.audit_user_id AS teller_id
+   FROM deposit.interest_transfer i
+     JOIN ( SELECT ac.office_id,
+            ac.account_number_id,
+            p.interest_payable_gl_account_id
+           FROM deposit.account_holders ac
+             JOIN core.deposit_products p ON ac.deposit_product_id = p.deposit_product_id) a ON i.nominee_account_number_id = a.account_number_id
+  GROUP BY a.office_id, i.value_date, a.interest_payable_gl_account_id, i.audit_user_id
+UNION ALL
+ SELECT 0 AS tran_id,
+    a.office_id,
+    i.value_date AS tran_date,
+    i.value_date,
+    'Interest Transfer'::character varying AS book_name,
+    a.gl_account_id,
+    sum(COALESCE(i.tax, 0::numeric))::money AS debit,
+    '$0.00'::money AS credit,
+    'Interest tax deducted '::text AS statement_reference,
+    i.audit_user_id AS teller_id
+   FROM deposit.interest_transfer i
+     JOIN ( SELECT ac.office_id,
+            ac.account_number_id,
+            p.gl_account_id
+           FROM deposit.account_holders ac
+             JOIN core.deposit_products p ON ac.deposit_product_id = p.deposit_product_id) a ON i.nominee_account_number_id = a.account_number_id
+  GROUP BY a.office_id, i.value_date, a.gl_account_id, i.audit_user_id
+UNION ALL
+ SELECT 1 AS tran_id,
+    bd.office_id,
+    bd.value_date::date AS tran_date,
+    bd.value_date::date AS value_date,
+    'Opening'::character varying(20) AS book_name,
+    bd.gl_account_id,
+    bd.debit,
+    bd.credit,
+    'Balance b/d.'::character varying AS statement_reference,
+    1 AS teller_id
+   FROM transactions.balance_bd_view bd
+UNION ALL
+ SELECT p.purchase_id AS tran_id,
+    p.office_id,
+    p.tran_date,
+    p.tran_date AS value_date,
+    'InventoryPurchase'::character varying AS book_name,
+    (SELECT gl_account_id FROM core.gl_accounts WHERE account_name = 'Cash A/C'),
+    0::money AS debit,
+    p.total_amount AS credit,
+    'Purchase on inventory'::text AS statement_reference,
+    p.audit_user_id AS teller_id
+   FROM inventory.purchase_items p
+UNION ALL
+ SELECT p.purchase_id AS tran_id,
+    p.office_id,
+    p.tran_date,
+    p.tran_date AS value_date,
+    'InventoryPurchase'::character varying AS book_name,
+    g.gl_account_id,
+    (pd.quantity * pd.cost_price) AS debit,
+    0::money AS credit,
+    'Purchase on inventory'::text AS statement_reference,
+    p.audit_user_id AS teller_id
+   FROM inventory.purchase_items p
+   INNER JOIN inventory.purchase_item_details pd ON pd.purchase_id = p.purchase_id
+   INNER JOIN inventory.item_groups g ON g.group_id = pd.group_id
+UNION ALL
+ SELECT s.item_sale_id AS tran_id,
+    s.office_id,
+    s.tran_date,
+    s.tran_date AS value_date,
+    'InventorySale' AS book_name,
+    (SELECT gl_account_id FROM core.gl_accounts WHERE account_name = 'Cash A/C'),
+    s.total_amount AS debit,
+    0::money AS credit,
+    'Sale on inventory'::text AS statement_reference,
+    s.audit_user_id AS teller_id
+   FROM inventory.item_sales s
+UNION ALL
+ SELECT sd.item_sale_id AS tran_id,
+    s.office_id,
+    s.tran_date,
+    s.tran_date AS value_date,
+    'InventorySale'::character varying AS book_name,
+    g.gl_account_id,
+    0::money AS debit,
+    (sd.quantity * sd.amount) AS credit,
+    'Sale on inventory'::text AS statement_reference,
+    sd.audit_user_id AS teller_id
+   FROM inventory.item_sales s
+   INNER JOIN inventory.item_sale_details sd ON sd.item_sale_id = s.item_sale_id
+   INNER JOIN inventory.items_view i ON sd.item_id = i.item_id
+   INNER JOIN inventory.item_groups g ON g.group_id = i.group_id;
+   

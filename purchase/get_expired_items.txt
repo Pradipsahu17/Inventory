@@ -1,0 +1,27 @@
+-- select * from inventory.get_expired_items()
+
+-- DROP FUNCTION IF EXISTS inventory.get_expired_items();
+
+CREATE OR REPLACE FUNCTION inventory.get_expired_items(
+	)
+    RETURNS TABLE(item_id integer, item_name character varying, quantity integer, unit_name character varying, mfd date, exp_date date) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
+DECLARE _date date := (SELECT core.get_date());
+	BEGIN
+		RETURN QUERY(
+			SELECT i.item_id, 
+				i.item_name, 
+				i.quantity, 
+				i.unit_name, 
+				i.mfd, 
+				i.exp_date
+			FROM inventory.items_view i
+			WHERE i.exp_date < _date 
+		);
+	END
+$BODY$;

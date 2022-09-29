@@ -1,0 +1,180 @@
+--inventory 
+
+CREATE SCHEMA IF NOT EXISTS inventory;
+
+--tables
+
+CREATE TABLE IF NOT EXISTS inventory.stores(
+	store_id serial PRIMARY KEY UNIQUE NOT NULL,
+	store_code character varying NOT NULL,
+	store_name character varying NOT NULL,
+	store_location character varying NOT NULL,
+	office_id integer REFERENCES office.offices(office_id) NOT NULL,
+	audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+	audit_ts timestamp with time zone DEFAULT now()
+);
+
+
+CREATE TABLE IF NOT EXISTS inventory.unit_setup(
+	unit_id serial PRIMARY KEY UNIQUE NOT NULL,
+	unit_name character varying NOT NULL,
+	unit_measurement character varying NOT NULL,
+	audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+	audit_ts timestamp with time zone DEFAULT now()
+);
+
+	
+CREATE TABLE IF NOT EXISTS inventory.suppliers(
+	supplier_id serial PRIMARY KEY UNIQUE NOT NULL,
+	supplier_name character varying NOT NULL,
+	supplier_address character varying,
+	audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+	audit_ts timestamp without time zone DEFAULT now()
+);
+
+
+CREATE TABLE IF NOT EXISTS inventory.item_groups(
+	group_id serial PRIMARY KEY UNIQUE NOT NULL,
+	group_name character varying NOT NULL,
+	is_parent boolean NOT NULL, 
+	parent_group_id integer,
+	gl_account_id integer REFERENCES core.gl_accounts(gl_account_id),
+	audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+	audit_ts timestamp with time zone DEFAULT now()
+);
+
+
+CREATE TABLE IF NOT EXISTS inventory.tax_type(
+	tax_id serial PRIMARY KEY UNIQUE NOT NULL,
+	tax_name character varying(30) NOT NULL,
+	code character varying(10),
+	percentage double precision NOT NULL,
+	gl_account_id bigint REFERENCES core.gl_accounts(gl_account_id) NOT NULL,
+	is_active boolean DEFAULT true,
+	audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+	audit_ts timestamp with time zone DEFAULT now()
+);
+
+
+CREATE TABLE IF NOT EXISTS inventory.suppliers(
+	supplier_id serial PRIMARY KEY UNIQUE NOT NULL,
+	supplier_name character varying NOT NULL,
+	supplier_address character varying,
+      supplier_contact character varying,
+	audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+	audit_ts timestamp without time zone DEFAULT now()
+);
+
+
+-- DROP TABLE IF EXISTS inventory.purchase_items;
+
+CREATE TABLE IF NOT EXISTS inventory.purchase_items
+(
+    purchase_id bigserial PRIMARY KEY UNIQUE NOT NULL,
+    office_id integer REFERENCES office.offices(office_id) NOT NULL,
+    tran_date date NOT NULL,
+    book_name character varying,
+    total_amount money,
+    statement_reference character varying(100),
+    verification_status_id smallint NOT NULL DEFAULT 0,
+    verified_by_user_id integer,
+    audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+    audit_ts timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS inventory.purchase_item_details
+(
+	purchase_detail_id bigserial PRIMARY KEY UNIQUE NOT NULL,
+    purchase_id bigint REFERENCES inventory.purchase_items(purchase_id) NOT NULL,
+    item_name character varying COLLATE pg_catalog."default" NOT NULL,
+    quantity integer NOT NULL,
+    cost_price money NOT NULL,
+    unit_id integer REFERENCES inventory.unit_setup(unit_id) NOT NULL,
+    group_id integer REFERENCES inventory.item_groups(group_id) NOT NULL,
+    store_id integer REFERENCES inventory.stores (store_id) NOT NULL,
+    supplier_id integer REFERENCES inventory.suppliers(supplier_id) NOT NULL,
+    description character varying,
+    mfd date,
+    exp_date date,
+    tax_id integer REFERENCES inventory.tax_type(tax_id) NOT NULL,
+    is_balance_bd boolean DEFAULT false,
+    is_warranty boolean DEFAULT FALSE,
+    warranty_duration integer,
+    audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+    audit_ts timestamp with time zone DEFAULT now()
+);
+
+-- drop table inventory.items
+
+CREATE TABLE IF NOT EXISTS inventory.items(
+	item_id bigserial PRIMARY KEY UNIQUE NOT NULL,
+	purchase_detail_id bigint REFERENCES inventory.purchase_item_details(purchase_detail_id) NOT NULL,
+	quantity integer NOT NULL,
+	cost_price money NOT NULL,
+	mrp money NOT NULL,
+	is_active boolean DEFAULT true,
+	audit_user_id integer REFERENCES office.users(user_id) NOT NULL,
+	audit_ts timestamp with time zone DEFAULT now()
+);
+
+
+-- DROP TYPE IF EXISTS inventory.item_purchase_type;
+
+CREATE TYPE inventory.item_purchase_type AS
+(
+	item_name character varying,
+	quantity integer,
+	cost_price money,
+	mrp money,
+	unit_id integer,
+	group_id integer,
+	store_id integer,
+	supplier_id integer,
+	description character varying,
+	mfd date,
+	exp_date date,
+	tax_id integer,
+	is_balance_bd boolean
+);
+
+
+-- DROP TABLE IF EXISTS inventory.item_sales;
+
+CREATE TABLE IF NOT EXISTS inventory.item_sales
+(
+    item_sale_id bigserial PRIMARY KEY UNIQUE NOT NULL,
+	office_id integer REFERENCES office.offices(office_id) NOT NULL,
+    tran_date date NOT NULL,
+    book_name character varying,
+	total_amount money,
+    statement_reference character varying(100),
+	verification_status_id smallint NOT NULL DEFAULT 0,
+    verified_by_user_id integer,
+    audit_user_id integer REFERENCES office.users (user_id) NOT NULL,
+    audit_ts timestamp with time zone DEFAULT now()
+);
+
+
+-- DROP TABLE IF EXISTS inventory.item_sale_details;
+
+CREATE TABLE IF NOT EXISTS inventory.item_sale_details(
+	item_sale_detail_id bigserial PRIMARY KEY UNIQUE NOT NULL,
+	item_sale_id bigint REFERENCES inventory.item_sales(item_sale_id) NOT NULL,
+	item_id integer NOT NULL,
+    quantity integer NOT NULL,
+    amount money NOT NULL,
+    audit_user_id integer NOT NULL,
+    audit_ts timestamp with time zone DEFAULT now()
+)
+
+
+-- DROP TYPE IF EXISTS inventory.item_type;
+
+CREATE TYPE inventory.item_type AS
+(
+	item_id integer,
+	quantity integer,
+	amount money
+);
+
+

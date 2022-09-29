@@ -1,0 +1,22 @@
+-- select * from inventory.get_remaining_quantity(29) 
+
+CREATE OR REPLACE FUNCTION inventory.get_remaining_quantity(
+	item_id_ bigint)
+    RETURNS integer 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE _sold_quantity integer;
+DECLARE _remaining_quantity integer;
+	BEGIN
+		SELECT COALESCE(SUM(sd.quantity),0) INTO _sold_quantity FROM inventory.item_sales s
+		INNER JOIN inventory.item_sale_details sd ON sd.item_sale_id = s.item_sale_id
+		WHERE sd.item_id = $1 AND s.verification_status_id <> '-3';
+			
+		SELECT i.quantity - _sold_quantity INTO _remaining_quantity FROM inventory.items i
+		WHERE i.item_id = $1;
+			
+		RETURN _remaining_quantity;
+	END
+$BODY$;

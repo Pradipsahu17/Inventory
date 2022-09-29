@@ -1,0 +1,23 @@
+-- DROP FUNCTION inventory.add_store(character varying,character varying,character varying,integer,integer)
+
+CREATE OR REPLACE FUNCTION inventory.add_store(
+	store_code_ character varying,
+	store_name_ character varying,
+	store_location character varying,
+	office_id_ integer,
+	user_id_ integer)
+	RETURNS integer
+	LANGUAGE 'plpgsql'
+	COST 100
+	VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE _store_id integer;
+	BEGIN 
+		INSERT INTO inventory.stores(store_code,store_name,store_location,office_id,audit_user_id)
+		SELECT $1,$2,$3,$4,$5;
+		
+		SELECT CURRVAL('inventory.stores_store_id_seq') INTO _store_id;
+		
+		RETURN _store_id;
+	END
+$BODY$;
